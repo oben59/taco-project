@@ -2,20 +2,12 @@
 - include_tasks: "{{ playbook_dir }}/inc/_tf_init.yml"
 
 - pause:
-    prompt: "Type address for the resource import"
-  register: tfaddress
-
-- pause:
-    prompt: "Type id for the resource import"
-  register: tfid
-
-- pause:
-    prompt: "Type a provider name if needed (leave empty for no provider)"
-  register: tfprovider
+    prompt: "Type parameters for the resource import"
+  register: tfparameters
 
 - set_fact:
     import_command_line: >-
-      terraform import {{ tf_common_options }} {{ ['-provider', tfprovider.user_input]|join('=') if tfprovider.user_input }} {{ tfaddress.user_input }} {{ tfid.user_input }}
+      terraform import {{ tf_common_options }} {{ tfparameters.user_input }}
 
 - debug:
     var: import_command_line
