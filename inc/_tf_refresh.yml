@@ -1,0 +1,46 @@
+---
+- include_tasks: "{{ playbook_dir }}/inc/_tf_init.yml"
+
+- set_fact:
+    refresh_command_line: >-
+      terraform refresh {{ tf_common_options }}
+
+- debug:
+    var: refresh_command_line
+    verbosity: 1
+
+- name: in case of no initial_role defined
+  block:
+    - name: "{{ tflayer }} - refresh"
+      shell: >-
+        {{ refresh_command_line }}
+      args:
+        chdir: "{{ src_layer_dir }}"
+      register: tf_refresh_light
+
+    - set_fact:
+        tf_refresh: "{{ tf_refresh_light }}"
+  when: initial_role is not defined
+
+
+- name: in case of initial_role defined
+  block:
+    - name: "{{ tflayer }} - refresh (with initial role assumed)"
+      shell: >-
+        {{ refresh_command_line }}
+      args:
+        chdir: "{{ src_layer_dir }}"
+      register: tf_refresh_assumed
+      environment:
+        AWS_ACCESS_KEY_ID: "{{ initial_role_credentials.sts_creds.access_key }}"
+        AWS_SECRET_ACCESS_KEY: "{{ initial_role_credentials.sts_creds.secret_key }}"
+        AWS_SECURITY_TOKEN: "{{ initial_role_credentials.sts_creds.session_token }}"
+
+    - set_fact:
+        tf_refresh: "{{ tf_refresh_assumed }}"
+  when: initial_role is defined
+
+- name: displaying refresh
+  debug:
+    msg: "{{ tf_refresh.stdout }}"
+

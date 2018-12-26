@@ -1,0 +1,58 @@
+---
+- include_tasks: "{{ playbook_dir }}/inc/_tf_init.yml"
+
+- pause:
+    prompt: "Type address for the resource import"
+  register: tfaddress
+
+- pause:
+    prompt: "Type id for the resource import"
+  register: tfid
+
+- pause:
+    prompt: "Type a provider name if needed (leave empty for no provider)"
+  register: tfprovider
+
+- set_fact:
+    import_command_line: >-
+      terraform import {{ tf_common_options }} {{ ['-provider', tfprovider.user_input]|join('=') if tfprovider.user_input }} {{ tfaddress.user_input }} {{ tfid.user_input }}
+
+- debug:
+    var: import_command_line
+    verbosity: 1
+
+- name: in case of no initial_role defined
+  block:
+    - name: "{{ tflayer }} - import"
+      shell: >-
+        {{ import_command_line }}
+      args:
+        chdir: "{{ src_layer_dir }}"
+      register: tf_import_light
+
+    - set_fact:
+        tf_import: "{{ tf_import_light }}"
+  when: initial_role is not defined
+
+
+- name: in case of initial_role defined
+  block:
+    - name: "{{ tflayer }} - import (with initial role assumed)"
+      shell: >-
+        {{ import_command_line }}
+      args:
+        chdir: "{{ src_layer_dir }}"
+      register: tf_import_assumed
+      environment:
+        AWS_ACCESS_KEY_ID: "{{ initial_role_credentials.sts_creds.access_key }}"
+        AWS_SECRET_ACCESS_KEY: "{{ initial_role_credentials.sts_creds.secret_key }}"
+        AWS_SECURITY_TOKEN: "{{ initial_role_credentials.sts_creds.session_token }}"
+
+    - set_fact:
+        tf_import: "{{ tf_import_assumed }}"
+  when: initial_role is defined
+
+- name: displaying import
+  debug:
+    msg: "{{ tf_import.stdout }}"
+
