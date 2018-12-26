@@ -1,5 +1,9 @@
 ---
-- include_tasks: "{{ playbook_dir }}/inc/_tf_init.yml"
+- set_fact:
+    plan_option: >-
+      -destroy
+
+- include_tasks: "{{ playbook_dir }}/inc/_tf_plan.yml"
 
 - pause:
     prompt: "Type 'destroy' if you want this to be done."
